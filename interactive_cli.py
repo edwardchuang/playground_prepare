@@ -43,11 +43,11 @@ def main_loop():
 
     # Get credentials and build service clients once at the start
     try:
-        credentials = get_credentials()
+        credentials, display_name = get_credentials()
         crm_v3 = build('cloudresourcemanager', 'v3', credentials=credentials)
         billing_v1 = build('billingbudgets', 'v1', credentials=credentials)
         serviceusage_v1 = build('serviceusage', 'v1', credentials=credentials)
-        print("Successfully authenticated with Google Cloud.")
+        print(f"Successfully authenticated with Google Cloud as: {display_name}")
     except Exception as e:
         print(f"Failed to authenticate with Google Cloud: {e}")
         print("Please ensure you have run 'gcloud auth application-default login'.")

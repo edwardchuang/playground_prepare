@@ -6,9 +6,14 @@ from googleapiclient.discovery import build
 from src import config
 
 def get_credentials():
-    """Gets user credentials from the environment."""
+    """Gets user credentials from the environment and returns them."""
     credentials, project_id = google.auth.default()
-    return credentials
+    display_name = "Unknown Credential"
+    if hasattr(credentials, 'service_account_email') and credentials.service_account_email:
+        display_name = credentials.service_account_email
+    elif hasattr(credentials, 'quota_project_id') and credentials.quota_project_id:
+        display_name = f"User Account (Project: {credentials.quota_project_id})"
+    return credentials, display_name
 
 def wait_for_operation(crm_v3, operation_name):
     """Waits for a long-running operation to complete."""
@@ -86,7 +91,31 @@ def init_project_folders(parent_id, crm_v3):
     return main_folder_id, general_folder_id, team_folder_id
 
 def main():
-    pass
+    parser = argparse.ArgumentParser(description='Provision Google Cloud projects for a hackathon.')
+    parser.add_argument('--attendees', help='Path to the attendees CSV file.')
+    parser.add_argument('--teams', help='Path to the teams CSV file.')
+    args = parser.parse_args()
+
+    credentials = get_credentials()
+    crm_v3 = build('cloudresourcemanager', 'v3', credentials=credentials)
+    billing_v1 = build('billingbudgets', 'v1', credentials=credentials)
+    serviceusage_v1 = build('serviceusage', 'v1', credentials=credentials)
+
+    if args.attendees or args.teams:
+        # For standalone execution, assume a default parent ID or make it configurable
+        # For now, we'll use a placeholder and assume the user will replace it.
+        # In a real scenario, this might come from an environment variable or a config file.
+        # For testing purposes, we'll use a dummy parent ID.
+        parent_id = "organizations/123456789012" # Replace with a valid organization or folder ID
+        
+        # Initialize folders to get the IDs
+        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3)
+
+        if args.attendees:
+            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, billing_v1, general_folder_id)
+
+        if args.teams:
+            provision_team_projects(args.teams, crm_v3, serviceusage_v1, billing_v1, team_folder_id)
 
 def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, billing_v1, general_folder_id):
     with open(attendees_file, 'r') as f:
