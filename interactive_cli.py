@@ -15,6 +15,7 @@ from main import (
     list_projects_in_folder,
     init_project_folders,
 )
+from src import config
 
 # Global variables to store folder IDs
 main_hackathon_folder_id = None
