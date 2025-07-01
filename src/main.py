@@ -38,6 +38,12 @@ def sanitize_project_id_part(part, max_len):
     # Remove trailing hyphens that might have been introduced by truncation
     sanitized = sanitized.rstrip('-')
 
+    # Ensure it ends with a letter or number
+    while sanitized and not sanitized[-1].isalnum():
+        sanitized = sanitized[:-1]
+    if not sanitized:
+        sanitized = 'p' # Fallback if sanitization results in an empty string
+
     return sanitized
 
 def get_credentials():
