@@ -38,3 +38,8 @@ TEAM_FOLDER_NAME = "Hackathon Teams"
 # Project Naming Conventions
 PLAYGROUND_PROJECT_SUFFIX = "-playground-gcp-25Q3"
 TEAM_PROJECT_SUFFIX = "-hackathon-team-gcp-25Q3"
+
+# Initialized Folder IDs (will be updated after init command)
+MAIN_HACKATHON_FOLDER_ID = None
+GENERAL_ATTENDEES_FOLDER_ID = None
+HACKATHON_TEAMS_FOLDER_ID = None

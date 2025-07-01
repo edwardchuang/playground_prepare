@@ -18,9 +18,9 @@ from main import (
 from src import config
 
 # Global variables to store folder IDs
-main_hackathon_folder_id = None
-general_attendees_folder_id = None
-hackathon_teams_folder_id = None
+main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
+general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
+hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
 
 def print_help():
     """Prints a help message with available commands."""
@@ -37,6 +37,32 @@ def print_help():
 def main_loop():
     """The main interactive loop for the CLI."""
     global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id
+
+    # Load folder IDs from config at startup
+    main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
+    general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
+    hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
+
+def save_folder_ids_to_config():
+    """Saves the current folder IDs to src/config.py for persistence."""
+    global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id
+    
+    config_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'src', 'config.py'))
+    
+    with open(config_file_path, 'r') as f:
+        lines = f.readlines()
+
+    with open(config_file_path, 'w') as f:
+        for line in lines:
+            if line.startswith('MAIN_HACKATHON_FOLDER_ID ='):
+                f.write(f"MAIN_HACKATHON_FOLDER_ID = '{main_hackathon_folder_id}'\n")
+            elif line.startswith('GENERAL_ATTENDEES_FOLDER_ID ='):
+                f.write(f"GENERAL_ATTENDEES_FOLDER_ID = '{general_attendees_folder_id}'\n")
+            elif line.startswith('HACKATHON_TEAMS_FOLDER_ID ='):
+                f.write(f"HACKATHON_TEAMS_FOLDER_ID = '{hackathon_teams_folder_id}'\n")
+            else:
+                f.write(line)
+    print("Folder IDs saved to src/config.py.")
 
     print("Welcome to the Hackathon Project Provisioning CLI.")
     print("Type 'help' for a list of commands.")
@@ -76,6 +102,7 @@ def main_loop():
                 try:
                     main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id = init_project_folders(parent_id, crm_v3)
                     print(f"Initialized folders: Main: {main_hackathon_folder_id}, General: {general_attendees_folder_id}, Teams: {hackathon_teams_folder_id}")
+                    save_folder_ids_to_config()
                 except Exception as e:
                     print(f"Error during initialization: {e}")
             elif command == "provision":
