@@ -228,7 +228,8 @@ def create_project(project_name, user_email, crm_v3, serviceusage_v1, billing_v1
 
 def set_iam_policy(project_id, user_email, crm_v3, debug_mode=False):
     admins = config.ADMIN_EMAILS
-    policy = crm_v3.projects().getIamPolicy(resource=project_id, body={}).execute()
+    resource_name = f"projects/{project_id}"
+    policy = crm_v3.projects().getIamPolicy(resource=resource_name, body={}).execute()
 
     # Add admins as owners
     for admin in admins:
@@ -245,7 +246,7 @@ def set_iam_policy(project_id, user_email, crm_v3, debug_mode=False):
 
     if debug_mode:
         print(f"DEBUG: API Payload for setting IAM policy for {project_id}: {{'policy': policy}}")
-    crm_v3.projects().setIamPolicy(resource=project_id, body={'policy': policy}).execute()
+    crm_v3.projects().setIamPolicy(resource=resource_name, body={'policy': policy}).execute()
     print(f'IAM policy updated for project {project_id}')
 
 def enable_apis(project_id, serviceusage_v1, debug_mode=False):
@@ -309,7 +310,8 @@ def create_team_project(project_name, team_members, crm_v3, serviceusage_v1, bil
 
 def set_team_iam_policy(project_id, team_members, crm_v3, debug_mode=False):
     admins = config.ADMIN_EMAILS
-    policy = crm_v3.projects().getIamPolicy(resource=project_id, body={}).execute()
+    resource_name = f"projects/{project_id}"
+    policy = crm_v3.projects().getIamPolicy(resource=resource_name, body={}).execute()
 
     # Add admins as owners
     for admin in admins:
@@ -326,7 +328,7 @@ def set_team_iam_policy(project_id, team_members, crm_v3, debug_mode=False):
 
     if debug_mode:
         print(f"DEBUG: API Payload for setting team IAM policy for {project_id}: {{'policy': policy}}")
-    crm_v3.projects().setIamPolicy(resource=project_id, body={'policy': policy}).execute()
+    crm_v3.projects().setIamPolicy(resource=resource_name, body={'policy': policy}).execute()
     print(f'IAM policy updated for project {project_id}')
 
 def set_team_budget(project_id, billing_v1, budget_amount, debug_mode=False):
