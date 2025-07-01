@@ -207,14 +207,16 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, billi
             email = row[0]
             email_prefix = email.split('@')[0]
             sanitized_email_prefix = sanitize_project_id_part(email_prefix, 10)
-            project_name = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}"
+            project_id = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}"
+            project_name = 'playground project for {email}'
             print(f'Creating playground project for {email} with name {project_name}...')
-            create_project(project_name, email, crm_v3, serviceusage_v1, billing_v1, general_folder_id, config.PLAYGROUND_PROJECT_BUDGET_USD, debug_mode)
+            create_project(project_name, project_id, email, crm_v3, serviceusage_v1, billing_v1, general_folder_id, config.PLAYGROUND_PROJECT_BUDGET_USD, debug_mode)
 
-def create_project(project_name, user_email, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount, debug_mode=False):
+def create_project(project_name, project_id, user_email, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount, debug_mode=False):
     parent_folder = f"folders/{parent_folder_id}"
     body = {
-        'project_id': project_name,
+        'project_id': project_id,
+        'project_name': project_name,
         'parent': parent_folder
     }
     if debug_mode:
@@ -289,14 +291,16 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, billing_v1, tea
             team_name, team_members_str = row
             team_members = team_members_str.split(',')
             sanitized_team_name = sanitize_project_id_part(team_name, 6)
-            project_name = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}'
+            project_id = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}'
+            project_name = 'team project for {team_name}'
             print(f'Creating team project for {team_name} with name {project_name}...')
             create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, team_folder_id, config.TEAM_PROJECT_BUDGET_USD, debug_mode)
 
-def create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount, debug_mode=False):
+def create_team_project(project_name, project_id, team_members, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount, debug_mode=False):
     parent_folder = f"folders/{parent_folder_id}"
     body = {
-        'project_id': project_name,
+        'project_id': project_id,
+        'project_name': project_name,
         'parent': parent_folder
     }
     if debug_mode:
