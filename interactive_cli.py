@@ -20,7 +20,7 @@ from src import config
 # Global variables to store folder IDs
 main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
 general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
-hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_id
+hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
 
 debug_mode = False
 
