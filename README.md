@@ -6,10 +6,22 @@ This project provides a Command Line Interface (CLI) tool to automate the provis
 
 *   **Main Folder Provisioning:** Creates main folders for general attendees and hackathon teams.
 *   **Project Provisioning:**
-    *   **General Attendees:** Provisions individual GCP projects for each attendee with specified admins as Project Owners and the attendee as Project Editor. A $5/month budget is applied per project.
-    *   **Hackathon Teams:** Provisions GCP projects for each team with specified admins as Project Owners and team members as Project Editors. A $100/month budget is applied per project.
+    *   **General Attendees:** Provisions individual GCP projects for each attendee with specified admins as Project Owners and the attendee as Project Editor. A configurable budget is applied per project.
+    *   **Hackathon Teams:** Provisions GCP projects for each team with specified admins as Project Owners and team members as Project Editors. A configurable budget is applied per project.
 *   **Org Policy Enforcement:** Enforces essential Google APIs for GenAI hackathons and applies budget controls.
 *   **Interactive CLI:** A user-friendly interactive CLI for managing the provisioning process.
+
+## Configuration
+
+The project's configurable variables are located in `src/config.py`. Before running the CLI, you should review and update this file according to your needs. Key configurable variables include:
+
+*   `ADMIN_EMAILS`: A list of email addresses for administrators who will be assigned as Project Owners.
+*   `BILLING_ACCOUNT_ID`: Your Google Cloud Billing Account ID.
+*   `PLAYGROUND_PROJECT_BUDGET_USD`: The monthly budget (in USD) for individual attendee projects.
+*   `TEAM_PROJECT_BUDGET_USD`: The monthly budget (in USD) for hackathon team projects.
+*   `APIS_TO_ENABLE`: A list of Google APIs that will be enabled for newly provisioned projects.
+*   `MAIN_FOLDER_NAME`, `GENERAL_FOLDER_NAME`, `TEAM_FOLDER_NAME`: Names for the main hackathon folder and its sub-folders.
+*   `PLAYGROUND_PROJECT_SUFFIX`, `TEAM_PROJECT_SUFFIX`: Suffixes used in the naming convention for projects.
 
 ## Technical Details
 
