@@ -130,10 +130,10 @@ def main_loop():
                     else:
                         print("No folders found or an error occurred.")
                 elif subcommand == "projects":
-                    if len(args) < 1:
+                    if len(args) < 2:
                         print("Error: Usage: list projects <playground|team>")
                         continue
-                    folder_type = args[0].lower()
+                    folder_type = args[1].lower()
                     target_folder_id = None
                     if folder_type == "playground":
                         target_folder_id = general_attendees_folder_id
