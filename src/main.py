@@ -9,21 +9,22 @@ import google.auth.transport.requests
 
 def get_credentials():
     """Gets user credentials from the environment and returns them."""
-    credentials, project_id = google.auth.default()
+    credentials, project_id = google.auth.default(scopes=['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/cloud-platform'])
     user_email = "Unknown User"
 
-    if hasattr(credentials, 'service_account_email') and credentials.service_account_email:
-        user_email = credentials.service_account_email
-    elif hasattr(credentials, 'id_token') and credentials.id_token:
-        try:
-            request = google.auth.transport.requests.Request()
-            id_info = google.oauth2.id_token.verify_oauth2_token(
-                credentials.id_token, request)
-            if id_info and 'email' in id_info:
-                user_email = id_info['email']
-        except Exception as e:
-            print(f"Warning: Could not decode ID token: {e}")
-            pass
+    try:
+        oauth2_service = build('oauth2', 'v2', credentials=credentials)
+        user_info = oauth2_service.userinfo().get().execute()
+        if user_info and 'email' in user_info:
+            user_email = user_info['email']
+    except Exception as e:
+        print(f"Warning: Could not retrieve user email from OAuth2 service: {e}")
+        if hasattr(credentials, 'service_account_email') and credentials.service_account_email:
+            user_email = credentials.service_account_email
+        elif hasattr(credentials, 'quota_project_id') and credentials.quota_project_id:
+            user_email = f"User Account (Project: {credentials.quota_project_id})"
+
+    return credentials, user_email
 
     return credentials, user_email
 
