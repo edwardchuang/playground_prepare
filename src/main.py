@@ -74,7 +74,7 @@ def wait_for_operation(crm_v3, operation_name):
             return operation
         time.sleep(5) # Poll every 5 seconds
 
-def init_project_folders(parent_id, crm_v3):
+def init_project_folders(parent_id, crm_v3, debug_mode=False):
     """Initializes and verifies the project folder structure."""
     print(f"Initializing project folders under parent ID: {parent_id}...")
 
@@ -113,7 +113,7 @@ def init_project_folders(parent_id, crm_v3):
     if not main_folder_id:
         print(f"Creating main folder: {main_folder_name}...")
         body = {'displayName': main_folder_name, 'parent': full_parent_path}
-        if config.DEBUG_API_PAYLOADS:
+        if debug_mode:
             print(f"DEBUG: API Payload for creating main folder: {body}")
         operation = crm_v3.folders().create(body=body).execute()
         operation_name = operation.get('name')
@@ -134,7 +134,7 @@ def init_project_folders(parent_id, crm_v3):
     if not general_folder_id:
         print(f"Creating general attendees folder: {general_folder_name}...")
         body = {'displayName': general_folder_name, 'parent': f"folders/{main_folder_id}"}
-        if config.DEBUG_API_PAYLOADS:
+        if debug_mode:
             print(f"DEBUG: API Payload for creating general attendees folder: {body}")
         operation = crm_v3.folders().create(body=body).execute()
         operation_name = operation.get('name')
@@ -155,7 +155,7 @@ def init_project_folders(parent_id, crm_v3):
     if not team_folder_id:
         print(f"Creating hackathon teams folder: {team_folder_name}...")
         body = {'displayName': team_folder_name, 'parent': f"folders/{main_folder_id}"}
-        if config.DEBUG_API_PAYLOADS:
+        if debug_mode:
             print(f"DEBUG: API Payload for creating hackathon teams folder: {body}")
         operation = crm_v3.folders().create(body=body).execute()
         operation_name = operation.get('name')
@@ -185,15 +185,15 @@ def main():
         parent_id = "organizations/123456789012" # Replace with a valid organization or folder ID
         
         # Initialize folders to get the IDs
-        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3)
+        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3, debug_mode=False)
 
         if args.attendees:
-            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, billing_v1, general_folder_id)
+            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, billing_v1, general_folder_id, debug_mode=False)
 
         if args.teams:
-            provision_team_projects(args.teams, crm_v3, serviceusage_v1, billing_v1, team_folder_id)
+            provision_team_projects(args.teams, crm_v3, serviceusage_v1, billing_v1, team_folder_id, debug_mode=False)
 
-def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, billing_v1, general_folder_id):
+def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, billing_v1, general_folder_id, debug_mode=False):
     with open(attendees_file, 'r') as f:
         reader = csv.reader(f)
         next(reader)  # Skip header
@@ -203,24 +203,24 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, billi
             sanitized_email_prefix = sanitize_project_id_part(email_prefix, 10)
             project_name = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}"
             print(f'Creating playground project for {email} with name {project_name}...')
-            create_project(project_name, email, crm_v3, serviceusage_v1, billing_v1, general_folder_id, config.PLAYGROUND_PROJECT_BUDGET_USD)
+            create_project(project_name, email, crm_v3, serviceusage_v1, billing_v1, general_folder_id, config.PLAYGROUND_PROJECT_BUDGET_USD, debug_mode)
 
-def create_project(project_name, user_email, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount):
+def create_project(project_name, user_email, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount, debug_mode=False):
     parent_folder = f"folders/{parent_folder_id}"
     body = {
         'project_id': project_name,
         'parent': parent_folder
     }
-    if config.DEBUG_API_PAYLOADS:
+    if debug_mode:
         print(f"DEBUG: API Payload for creating project {project_name}: {body}")
     operation = crm_v3.projects().create(body=body).execute()
     print(f"Project creation initiated for {project_name}. Operation: {operation['name']}")
     wait_for_operation(crm_v3, operation['name'])
-    set_iam_policy(project_name, user_email, crm_v3)
-    enable_apis(project_name, serviceusage_v1)
-    set_budget(project_name, billing_v1, budget_amount)
+    set_iam_policy(project_name, user_email, crm_v3, debug_mode)
+    enable_apis(project_name, serviceusage_v1, debug_mode)
+    set_budget(project_name, billing_v1, budget_amount, debug_mode)
 
-def set_iam_policy(project_id, user_email, crm_v3):
+def set_iam_policy(project_id, user_email, crm_v3, debug_mode=False):
     admins = config.ADMIN_EMAILS
     policy = crm_v3.projects().getIamPolicy(resource=project_id, body={}).execute()
 
@@ -237,20 +237,20 @@ def set_iam_policy(project_id, user_email, crm_v3):
         'members': [f'user:{user_email}']
     })
 
-    if config.DEBUG_API_PAYLOADS:
+    if debug_mode:
         print(f"DEBUG: API Payload for setting IAM policy for {project_id}: {{'policy': policy}}")
     crm_v3.projects().setIamPolicy(resource=project_id, body={'policy': policy}).execute()
     print(f'IAM policy updated for project {project_id}')
 
-def enable_apis(project_id, serviceusage_v1):
+def enable_apis(project_id, serviceusage_v1, debug_mode=False):
     apis_to_enable = config.APIS_TO_ENABLE
     for api in apis_to_enable:
         print(f'Enabling {api} for project {project_id}...')
-        if config.DEBUG_API_PAYLOADS:
+        if debug_mode:
             print(f"DEBUG: API Payload for enabling API {api} for project {project_id}: {{'name': f'projects/{project_id}/services/{api}'}}")
         serviceusage_v1.services().enable(name=f'projects/{project_id}/services/{api}').execute()
 
-def set_budget(project_id, billing_v1, budget_amount):
+def set_budget(project_id, billing_v1, budget_amount, debug_mode=False):
     billing_account = config.BILLING_ACCOUNT_ID
     budget = {
         'displayName': f'{project_id}-budget',
@@ -269,12 +269,12 @@ def set_budget(project_id, billing_v1, budget_amount):
             {'thresholdPercent': 1.0, 'spendBasis': 'CURRENT_SPEND'}
         ]
     }
-    if config.DEBUG_API_PAYLOADS:
+    if debug_mode:
         print(f"DEBUG: API Payload for setting budget for {project_id}: {budget}")
     billing_v1.billingAccounts().budgets().create(parent=billing_account, body=budget).execute()
     print(f'Budget set for project {project_id}')
 
-def provision_team_projects(teams_file, crm_v3, serviceusage_v1, billing_v1, team_folder_id):
+def provision_team_projects(teams_file, crm_v3, serviceusage_v1, billing_v1, team_folder_id, debug_mode=False):
     with open(teams_file, 'r') as f:
         reader = csv.reader(f)
         next(reader)  # Skip header
@@ -284,24 +284,24 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, billing_v1, tea
             sanitized_team_name = sanitize_project_id_part(team_name, 6)
             project_name = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}'
             print(f'Creating team project for {team_name} with name {project_name}...')
-            create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, team_folder_id, config.TEAM_PROJECT_BUDGET_USD)
+            create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, team_folder_id, config.TEAM_PROJECT_BUDGET_USD, debug_mode)
 
-def create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount):
+def create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount, debug_mode=False):
     parent_folder = f"folders/{parent_folder_id}"
     body = {
         'project_id': project_name,
         'parent': parent_folder
     }
-    if config.DEBUG_API_PAYLOADS:
+    if debug_mode:
         print(f"DEBUG: API Payload for creating team project {project_name}: {body}")
     operation = crm_v3.projects().create(body=body).execute()
     print(f"Project creation initiated for {project_name}. Operation: {operation['name']}")
     wait_for_operation(crm_v3, operation['name'])
-    set_team_iam_policy(project_name, team_members, crm_v3)
-    enable_apis(project_name, serviceusage_v1)
-    set_team_budget(project_name, billing_v1, budget_amount)
+    set_team_iam_policy(project_name, team_members, crm_v3, debug_mode)
+    enable_apis(project_name, serviceusage_v1, debug_mode)
+    set_team_budget(project_name, billing_v1, budget_amount, debug_mode)
 
-def set_team_iam_policy(project_id, team_members, crm_v3):
+def set_team_iam_policy(project_id, team_members, crm_v3, debug_mode=False):
     admins = config.ADMIN_EMAILS
     policy = crm_v3.projects().getIamPolicy(resource=project_id, body={}).execute()
 
@@ -318,12 +318,12 @@ def set_team_iam_policy(project_id, team_members, crm_v3):
         'members': [f'group:{member}' for member in team_members]
     })
 
-    if config.DEBUG_API_PAYLOADS:
+    if debug_mode:
         print(f"DEBUG: API Payload for setting team IAM policy for {project_id}: {{'policy': policy}}")
     crm_v3.projects().setIamPolicy(resource=project_id, body={'policy': policy}).execute()
     print(f'IAM policy updated for project {project_id}')
 
-def set_team_budget(project_id, billing_v1, budget_amount):
+def set_team_budget(project_id, billing_v1, budget_amount, debug_mode=False):
     billing_account = config.BILLING_ACCOUNT_ID
     budget = {
         'displayName': f'{project_id}-budget',
@@ -342,7 +342,7 @@ def set_team_budget(project_id, billing_v1, budget_amount):
             {'thresholdPercent': 1.0, 'spendBasis': 'CURRENT_SPEND'}
         ]
     }
-    if config.DEBUG_API_PAYLOADS:
+    if debug_mode:
         print(f"DEBUG: API Payload for setting team budget for {project_id}: {budget}")
     billing_v1.billingAccounts().budgets().create(parent=billing_account, body=budget).execute()
     print(f'Budget set for project {project_id}')
@@ -395,10 +395,10 @@ if __name__ == '__main__':
         parent_id = "organizations/123456789012" # Replace with a valid organization or folder ID
         
         # Initialize folders to get the IDs
-        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3)
+        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3, debug_mode=False)
 
         if args.attendees:
-            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, billing_v1, general_folder_id)
+            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, billing_v1, general_folder_id, debug_mode=False)
 
         if args.teams:
-            provision_team_projects(args.teams, crm_v3, serviceusage_v1, billing_v1, team_folder_id)
+            provision_team_projects(args.teams, crm_v3, serviceusage_v1, billing_v1, team_folder_id, debug_mode=False)

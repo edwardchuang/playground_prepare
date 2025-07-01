@@ -20,7 +20,9 @@ from src import config
 # Global variables to store folder IDs
 main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
 general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
-hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
+hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_id
+
+debug_mode = False
 
 def print_help():
     """Prints a help message with available commands."""
@@ -31,6 +33,7 @@ def print_help():
     print("  check folder <folder_id>           - Check if a folder is accessible.")
     print("  list folders                       - List all available folders.")
     print("  list projects <playground|team>    - List projects in the playground or team folder.")
+    print("  debug on|off                       - Turn API payload debugging on or off.")
     print("  help                               - Show this help message.")
     print("  exit                               - Exit the application.\n")
 
@@ -57,7 +60,7 @@ def save_folder_ids_to_config():
 
 def main_loop():
     """The main interactive loop for the CLI."""
-    global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id
+    global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id, debug_mode
 
     # Load folder IDs from config at startup
     main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
@@ -93,13 +96,26 @@ def main_loop():
                 break
             elif command == "help":
                 print_help()
+            elif command == "debug":
+                if not args:
+                    print("Error: 'debug' requires 'on' or 'off'. Usage: debug on|off")
+                    continue
+                subcommand = args[0].lower()
+                if subcommand == "on":
+                    debug_mode = True
+                    print("API payload debugging is ON.")
+                elif subcommand == "off":
+                    debug_mode = False
+                    print("API payload debugging is OFF.")
+                else:
+                    print("Error: Invalid debug subcommand. Use 'on' or 'off'.")
             elif command == "init":
                 if not args:
                     print("Error: 'init' requires a parent ID (organization or folder).")
                     continue
                 parent_id = args[0]
                 try:
-                    main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id = init_project_folders(parent_id, crm_v3)
+                    main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id = init_project_folders(parent_id, crm_v3, debug_mode)
                     print(f"Initialized folders: Main: {main_hackathon_folder_id}, General: {general_attendees_folder_id}, Teams: {hackathon_teams_folder_id}")
                     save_folder_ids_to_config()
                 except Exception as e:
@@ -121,14 +137,14 @@ def main_loop():
                         print("Error: General attendees folder not initialized. Please run 'init' first.")
                         continue
                     print(f"Starting provisioning for attendees from {file_path}...")
-                    provision_playground_projects(file_path, crm_v3, serviceusage_v1, billing_v1, general_attendees_folder_id)
+                    provision_playground_projects(file_path, crm_v3, serviceusage_v1, billing_v1, general_attendees_folder_id, debug_mode)
                     print("Finished provisioning for attendees.")
                 elif subcommand == "teams":
                     if not hackathon_teams_folder_id:
                         print("Error: Hackathon teams folder not initialized. Please run 'init' first.")
                         continue
                     print(f"Starting provisioning for teams from {file_path}...")
-                    provision_team_projects(file_path, crm_v3, serviceusage_v1, billing_v1, hackathon_teams_folder_id)
+                    provision_team_projects(file_path, crm_v3, serviceusage_v1, billing_v1, hackathon_teams_folder_id, debug_mode)
                     print("Finished provisioning for teams.")
                 else:
                     print(f"Error: Unknown subcommand '{subcommand}' for 'provision'.")
