@@ -29,6 +29,8 @@ class TestProjectProvisioning(unittest.TestCase):
     @patch('main.init_project_folders')
     def test_main(self, mock_init_project_folders, mock_team_projects, mock_playground_projects, mock_build, mock_get_credentials):
         mock_crm_v3 = MagicMock()
+        mock_crm_v3.organizations().get.return_value.execute.return_value = {'name': 'organizations/123456789012'}
+        mock_crm_v3.folders().get.return_value.execute.return_value = {'name': 'folders/123456789012'}
         mock_billing_v1 = MagicMock()
         mock_serviceusage_v1 = MagicMock()
         mock_build.side_effect = [mock_crm_v3, mock_billing_v1, mock_serviceusage_v1]

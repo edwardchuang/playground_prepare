@@ -45,11 +45,32 @@ def init_project_folders(parent_id, crm_v3):
     """Initializes and verifies the project folder structure."""
     print(f"Initializing project folders under parent ID: {parent_id}...")
 
+    full_parent_path = None
+    # Try as an organization
+    try:
+        # Attempt to get the organization to verify it exists and we have access
+        crm_v3.organizations().get(name=f"organizations/{parent_id}").execute()
+        full_parent_path = f"organizations/{parent_id}"
+        print(f"Parent ID {parent_id} identified as an Organization.")
+    except Exception as e_org:
+        # If not an organization, try as a folder
+        try:
+            crm_v3.folders().get(name=f"folders/{parent_id}").execute()
+            full_parent_path = f"folders/{parent_id}"
+            print(f"Parent ID {parent_id} identified as a Folder.")
+        except Exception as e_folder:
+            raise Exception(f"Parent ID {parent_id} is neither a valid Organization nor Folder ID. "
+                            f"Organization check error: {e_org}. Folder check error: {e_folder}")
+
+    if not full_parent_path:
+        raise Exception(f"Could not determine type of parent ID: {parent_id}")
+
+    # Now use full_parent_path for all subsequent operations
     # Main Hackathon Playground Users Folder
     main_folder_name = config.MAIN_FOLDER_NAME
     main_folder_id = None
     # Check if main folder exists
-    folders = crm_v3.folders().list(parent=f"organizations/{parent_id}" if "organizations" in parent_id else f"folders/{parent_id}").execute().get('folders', [])
+    folders = crm_v3.folders().list(parent=full_parent_path).execute().get('folders', [])
     for folder in folders:
         if folder.get('displayName') == main_folder_name:
             main_folder_id = folder.get('name').split('/')[1]
@@ -58,7 +79,7 @@ def init_project_folders(parent_id, crm_v3):
 
     if not main_folder_id:
         print(f"Creating main folder: {main_folder_name}...")
-        operation = crm_v3.folders().create(body={'displayName': main_folder_name, 'parent': f"organizations/{parent_id}" if "organizations" in parent_id else f"folders/{parent_id}"}).execute()
+        operation = crm_v3.folders().create(body={'displayName': main_folder_name, 'parent': full_parent_path}).execute()
         operation_name = operation.get('name')
         wait_for_operation(crm_v3, operation_name)
         main_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
