@@ -35,6 +35,9 @@ def sanitize_project_id_part(part, max_len):
     # Truncate to max_len
     sanitized = sanitized[:max_len]
 
+    # Remove trailing hyphens that might have been introduced by truncation
+    sanitized = sanitized.rstrip('-')
+
     return sanitized
 
 def get_credentials():
