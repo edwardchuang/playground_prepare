@@ -6,6 +6,27 @@ from googleapiclient.discovery import build
 from src import config
 import google.oauth2.id_token
 import google.auth.transport.requests
+import re
+
+def sanitize_project_id_part(part):
+    """Sanitizes a string part for use in a GCP project ID.
+    Converts to lowercase, replaces non-alphanumeric (except hyphen) with hyphen,
+    removes leading/trailing hyphens, and ensures it starts with a letter.
+    """
+    # Convert to lowercase
+    sanitized = part.lower()
+    # Replace non-alphanumeric (except hyphen) with hyphen
+    sanitized = re.sub(r'[^a-z0-9-]', '-', sanitized)
+    # Replace multiple hyphens with a single hyphen
+    sanitized = re.sub(r'-+', '-', sanitized)
+    # Remove leading/trailing hyphens
+    sanitized = sanitized.strip('-')
+
+    # Ensure it starts with a letter (GCP project IDs must start with a lowercase letter)
+    if not sanitized or not sanitized[0].isalpha():
+        sanitized = 'p' + sanitized  # Prepend 'p' if it doesn't start with a letter
+
+    return sanitized
 
 def get_credentials():
     """Gets user credentials from the environment and returns them."""
@@ -157,7 +178,9 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, billi
         next(reader)  # Skip header
         for row in reader:
             email = row[0]
-            project_name = f"{email.split('@')[0]}{config.PLAYGROUND_PROJECT_SUFFIX}"
+            email_prefix = email.split('@')[0]
+            sanitized_email_prefix = sanitize_project_id_part(email_prefix)
+            project_name = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}"
             print(f'Creating playground project for {email} with name {project_name}...')
             create_project(project_name, email, crm_v3, serviceusage_v1, billing_v1, general_folder_id, config.PLAYGROUND_PROJECT_BUDGET_USD)
 
@@ -228,7 +251,8 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, billing_v1, tea
         for row in reader:
             team_name, team_members_str = row
             team_members = team_members_str.split(',')
-            project_name = f'{team_name}{config.TEAM_PROJECT_SUFFIX}'
+            sanitized_team_name = sanitize_project_id_part(team_name)
+            project_name = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}'
             print(f'Creating team project for {team_name} with name {project_name}...')
             create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, team_folder_id, config.TEAM_PROJECT_BUDGET_USD)
 
