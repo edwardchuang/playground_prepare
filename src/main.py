@@ -8,12 +8,24 @@ from src import config
 def get_credentials():
     """Gets user credentials from the environment and returns them."""
     credentials, project_id = google.auth.default()
-    display_name = "Unknown Credential"
+    user_email = "Unknown User"
+
     if hasattr(credentials, 'service_account_email') and credentials.service_account_email:
-        display_name = credentials.service_account_email
-    elif hasattr(credentials, 'quota_project_id') and credentials.quota_project_id:
-        display_name = f"User Account (Project: {credentials.quota_project_id})"
-    return credentials, display_name
+        user_email = credentials.service_account_email
+    elif hasattr(credentials, 'id_token') and credentials.id_token:
+        try:
+            import google.oauth2.id_token
+            import google.auth.transport.requests
+            request = google.auth.transport.requests.Request()
+            id_info = google.oauth2.id_token.verify_oauth2_token(
+                credentials.id_token, request)
+            if id_info and 'email' in id_info:
+                user_email = id_info['email']
+        except Exception as e:
+            print(f"Warning: Could not decode ID token: {e}")
+            pass
+
+    return credentials, user_email
 
 def wait_for_operation(crm_v3, operation_name):
     """Waits for a long-running operation to complete."""
