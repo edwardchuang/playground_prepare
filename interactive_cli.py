@@ -77,7 +77,6 @@ def save_folder_ids_to_config():
     except Exception as e:
         print(f"Failed to authenticate with Google Cloud: {e}")
         print("Please ensure you have run 'gcloud auth application-default login'.")
-        return
 
     while True:
         try:
