@@ -37,7 +37,7 @@ class TestProjectProvisioning(unittest.TestCase):
         # Test with --attendees argument
         with patch.object(sys, 'argv', ['main.py', '--attendees', 'attendees.csv']):
             main()
-            mock_init_project_folders.assert_called_once_with('organizations/123456789012', mock_crm_v3)
+            mock_init_project_folders.assert_called_once_with("organizations/123456789012", mock_crm_v3)
             mock_playground_projects.assert_called_with('attendees.csv', mock_crm_v3, mock_serviceusage_v1, mock_billing_v1, 'general_folder_id_mock')
             mock_team_projects.assert_not_called()
 
@@ -49,7 +49,7 @@ class TestProjectProvisioning(unittest.TestCase):
         # Test with --teams argument
         with patch.object(sys, 'argv', ['main.py', '--teams', 'teams.csv']):
             main()
-            mock_init_project_folders.assert_called_once_with('organizations/123456789012', mock_crm_v3)
+            mock_init_project_folders.assert_called_once_with("organizations/123456789012", mock_crm_v3)
             mock_playground_projects.assert_not_called()
             mock_team_projects.assert_called_with('teams.csv', mock_crm_v3, mock_serviceusage_v1, mock_billing_v1, 'team_folder_id_mock')
 
