@@ -4,6 +4,8 @@ import google.auth
 import time
 from googleapiclient.discovery import build
 from src import config
+import google.oauth2.id_token
+import google.auth.transport.requests
 
 def get_credentials():
     """Gets user credentials from the environment and returns them."""
@@ -14,8 +16,6 @@ def get_credentials():
         user_email = credentials.service_account_email
     elif hasattr(credentials, 'id_token') and credentials.id_token:
         try:
-            import google.oauth2.id_token
-            import google.auth.transport.requests
             request = google.auth.transport.requests.Request()
             id_info = google.oauth2.id_token.verify_oauth2_token(
                 credentials.id_token, request)
