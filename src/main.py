@@ -264,8 +264,18 @@ if __name__ == '__main__':
     billing_v1 = build('billingbudgets', 'v1', credentials=credentials)
     serviceusage_v1 = build('serviceusage', 'v1', credentials=credentials)
 
-    if args.attendees:
-        provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, billing_v1)
+    if args.attendees or args.teams:
+        # For standalone execution, assume a default parent ID or make it configurable
+        # For now, we'll use a placeholder and assume the user will replace it.
+        # In a real scenario, this might come from an environment variable or a config file.
+        # For testing purposes, we'll use a dummy parent ID.
+        parent_id = "organizations/123456789012" # Replace with a valid organization or folder ID
+        
+        # Initialize folders to get the IDs
+        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3)
 
-    if args.teams:
-        provision_team_projects(args.teams, crm_v3, serviceusage_v1, billing_v1)
+        if args.attendees:
+            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, billing_v1, general_folder_id)
+
+        if args.teams:
+            provision_team_projects(args.teams, crm_v3, serviceusage_v1, billing_v1, team_folder_id)
