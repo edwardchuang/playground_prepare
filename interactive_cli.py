@@ -34,15 +34,6 @@ def print_help():
     print("  help                               - Show this help message.")
     print("  exit                               - Exit the application.\n")
 
-def main_loop():
-    """The main interactive loop for the CLI."""
-    global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id
-
-    # Load folder IDs from config at startup
-    main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
-    general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
-    hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
-
 def save_folder_ids_to_config():
     """Saves the current folder IDs to src/config.py for persistence."""
     global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id
@@ -63,6 +54,15 @@ def save_folder_ids_to_config():
             else:
                 f.write(line)
     print("Folder IDs saved to src/config.py.")
+
+def main_loop():
+    """The main interactive loop for the CLI."""
+    global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id
+
+    # Load folder IDs from config at startup
+    main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
+    general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
+    hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
 
     print("Welcome to the Hackathon Project Provisioning CLI.")
     print("Type 'help' for a list of commands.")
