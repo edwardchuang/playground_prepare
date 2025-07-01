@@ -3,6 +3,7 @@ import csv
 import google.auth
 import time
 from googleapiclient.discovery import build
+from src import config
 
 def get_credentials():
     """Gets user credentials from the environment."""
@@ -27,7 +28,7 @@ def init_project_folders(parent_id, crm_v3):
     print(f"Initializing project folders under parent ID: {parent_id}...")
 
     # Main Hackathon Playground Users Folder
-    main_folder_name = "Hackathon Playground Users"
+    main_folder_name = config.MAIN_FOLDER_NAME
     main_folder_id = None
     # Check if main folder exists
     folders = crm_v3.folders().list(parent=f"organizations/{parent_id}" if "organizations" in parent_id else f"folders/{parent_id}").execute().get('folders', [])
@@ -46,7 +47,7 @@ def init_project_folders(parent_id, crm_v3):
         print(f"Created main folder: {main_folder_name} (ID: {main_folder_id})")
 
     # Sub-folder for General Attendees
-    general_folder_name = "General Attendees"
+    general_folder_name = config.GENERAL_FOLDER_NAME
     general_folder_id = None
     folders = crm_v3.folders().list(parent=f"folders/{main_folder_id}").execute().get('folders', [])
     for folder in folders:
@@ -64,7 +65,7 @@ def init_project_folders(parent_id, crm_v3):
         print(f"Created general attendees folder: {general_folder_name} (ID: {general_folder_id})")
 
     # Sub-folder for Hackathon Teams
-    team_folder_name = "Hackathon Teams"
+    team_folder_name = config.TEAM_FOLDER_NAME
     team_folder_id = None
     folders = crm_v3.folders().list(parent=f"folders/{main_folder_id}").execute().get('folders', [])
     for folder in folders:
@@ -93,11 +94,11 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, billi
         next(reader)  # Skip header
         for row in reader:
             email = row[0]
-            project_name = f"{email.split('@')[0]}-playground-gcp-25Q3"
+            project_name = f"{email.split('@')[0]}{config.PLAYGROUND_PROJECT_SUFFIX}"
             print(f'Creating playground project for {email} with name {project_name}...')
-            create_project(project_name, email, crm_v3, serviceusage_v1, billing_v1, general_folder_id)
+            create_project(project_name, email, crm_v3, serviceusage_v1, billing_v1, general_folder_id, config.PLAYGROUND_PROJECT_BUDGET_USD)
 
-def create_project(project_name, user_email, crm_v3, serviceusage_v1, billing_v1, parent_folder_id):
+def create_project(project_name, user_email, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount):
     parent_folder = f"folders/{parent_folder_id}"
     operation = crm_v3.projects().create(body={
         'project_id': project_name,
@@ -107,10 +108,10 @@ def create_project(project_name, user_email, crm_v3, serviceusage_v1, billing_v1
     wait_for_operation(crm_v3, operation['name'])
     set_iam_policy(project_name, user_email, crm_v3)
     enable_apis(project_name, serviceusage_v1)
-    set_budget(project_name, billing_v1)
+    set_budget(project_name, billing_v1, budget_amount)
 
 def set_iam_policy(project_id, user_email, crm_v3):
-    admins = ['admin1@example.com', 'admin2@example.com']  # Replace with your admin emails
+    admins = config.ADMIN_EMAILS
     policy = crm_v3.projects().getIamPolicy(resource=project_id, body={}).execute()
 
     # Add admins as owners
@@ -130,26 +131,13 @@ def set_iam_policy(project_id, user_email, crm_v3):
     print(f'IAM policy updated for project {project_id}')
 
 def enable_apis(project_id, serviceusage_v1):
-    apis_to_enable = [
-        'aiplatform.googleapis.com',
-        'storage.googleapis.com',
-        'bigquery.googleapis.com',
-        'cloudfunctions.googleapis.com',
-        'run.googleapis.com',
-        'logging.googleapis.com',
-        'monitoring.googleapis.com',
-        'iam.googleapis.com',
-        'cloudresourcemanager.googleapis.com',
-        'serviceusage.googleapis.com',
-        'cloudbilling.googleapis.com',
-    ]
+    apis_to_enable = config.APIS_TO_ENABLE
     for api in apis_to_enable:
         print(f'Enabling {api} for project {project_id}...')
         serviceusage_v1.services().enable(name=f'projects/{project_id}/services/{api}').execute()
 
-def set_budget(project_id, billing_v1):
-    # Replace with your billing account ID
-    billing_account = "billingAccounts/YOUR_BILLING_ACCOUNT_ID"
+def set_budget(project_id, billing_v1, budget_amount):
+    billing_account = config.BILLING_ACCOUNT_ID
     budget = {
         'displayName': f'{project_id}-budget',
         'budgetFilter': {
@@ -158,7 +146,7 @@ def set_budget(project_id, billing_v1):
         'amount': {
             'specifiedAmount': {
                 'currencyCode': 'USD',
-                'units': '5'
+                'units': str(budget_amount)
             }
         },
         'thresholdRules': [
@@ -177,11 +165,11 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, billing_v1, tea
         for row in reader:
             team_name, team_members_str = row
             team_members = team_members_str.split(',')
-            project_name = f'{team_name}-hackathon-team-gcp-25Q3'
+            project_name = f'{team_name}{config.TEAM_PROJECT_SUFFIX}'
             print(f'Creating team project for {team_name} with name {project_name}...')
-            create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, team_folder_id)
+            create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, team_folder_id, config.TEAM_PROJECT_BUDGET_USD)
 
-def create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, parent_folder_id):
+def create_team_project(project_name, team_members, crm_v3, serviceusage_v1, billing_v1, parent_folder_id, budget_amount):
     parent_folder = f"folders/{parent_folder_id}"
     operation = crm_v3.projects().create(body={
         'project_id': project_name,
@@ -191,10 +179,10 @@ def create_team_project(project_name, team_members, crm_v3, serviceusage_v1, bil
     wait_for_operation(crm_v3, operation['name'])
     set_team_iam_policy(project_name, team_members, crm_v3)
     enable_apis(project_name, serviceusage_v1)
-    set_team_budget(project_name, billing_v1)
+    set_team_budget(project_name, billing_v1, budget_amount)
 
 def set_team_iam_policy(project_id, team_members, crm_v3):
-    admins = ['admin1@example.com', 'admin2@example.com']  # Replace with your admin emails
+    admins = config.ADMIN_EMAILS
     policy = crm_v3.projects().getIamPolicy(resource=project_id, body={}).execute()
 
     # Add admins as owners
@@ -213,9 +201,8 @@ def set_team_iam_policy(project_id, team_members, crm_v3):
     crm_v3.projects().setIamPolicy(resource=project_id, body={'policy': policy}).execute()
     print(f'IAM policy updated for project {project_id}')
 
-def set_team_budget(project_id, billing_v1):
-    # Replace with your billing account ID
-    billing_account = "billingAccounts/YOUR_BILLING_ACCOUNT_ID"
+def set_team_budget(project_id, billing_v1, budget_amount):
+    billing_account = config.BILLING_ACCOUNT_ID
     budget = {
         'displayName': f'{project_id}-budget',
         'budgetFilter': {
@@ -224,7 +211,7 @@ def set_team_budget(project_id, billing_v1):
         'amount': {
             'specifiedAmount': {
                 'currencyCode': 'USD',
-                'units': '100'
+                'units': str(budget_amount)
             }
         },
         'thresholdRules': [
