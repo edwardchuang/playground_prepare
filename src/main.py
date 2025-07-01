@@ -309,8 +309,7 @@ def list_folders(crm_v3):
 def list_projects_in_folder(folder_id, crm_v3):
     """Lists all projects within a specific folder."""
     try:
-        query = f"parent.type:folder parent.id:{folder_id}"
-        projects = crm_v3.projects().list(query=query).execute().get('projects', [])
+        projects = crm_v3.projects().list(parent=f"folders/{folder_id}").execute().get('projects', [])
         return projects
     except Exception as e:
         print(f"Error listing projects in folder {folder_id}: {e}")
