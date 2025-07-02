@@ -9,6 +9,31 @@ import google.auth.transport.requests
 import re
 import os
 
+# ANSI escape codes for colors
+class Colors:
+    RESET = '\033[0m'
+    RED = '\033[91m'
+    GREEN = '\033[92m'
+    YELLOW = '\033[93m'
+    BLUE = '\033[94m'
+    MAGENTA = '\033[95m'
+    CYAN = '\033[96m'
+
+def print_success(message):
+    print(f"{Colors.GREEN}{message}{Colors.RESET}")
+
+def print_error(message):
+    print(f"{Colors.RED}{message}{Colors.RESET}")
+
+def print_warning(message):
+    print(f"{Colors.YELLOW}{message}{Colors.RESET}")
+
+def print_info(message):
+    print(f"{Colors.CYAN}{message}{Colors.RESET}")
+
+def print_debug(message):
+    print(f"{Colors.MAGENTA}{message}{Colors.RESET}")
+
 def sanitize_project_id_part(part, max_len):
     """Sanitizes a string part for use in a GCP project ID.
     Converts to lowercase, replaces non-alphanumeric (except hyphen) with hyphen,
@@ -58,7 +83,7 @@ def get_credentials():
         if user_info and 'email' in user_info:
             user_email = user_info['email']
     except Exception as e:
-        print(f"Warning: Could not retrieve user email from OAuth2 service: {e}")
+        print_warning(f"Warning: Could not retrieve user email from OAuth2 service: {e}")
         if hasattr(credentials, 'service_account_email') and credentials.service_account_email:
             user_email = credentials.service_account_email
         elif hasattr(credentials, 'quota_project_id') and credentials.quota_project_id:
@@ -70,20 +95,20 @@ def get_credentials():
 
 def wait_for_operation(crm_v3, operation_name):
     """Waits for a long-running operation to complete."""
-    print(f"Waiting for operation {operation_name} to complete...")
+    print_info(f"Waiting for operation {operation_name} to complete...")
     while True:
         operation = crm_v3.operations().get(name=operation_name).execute()
         if operation.get('done'):
-            print(f"Operation {operation_name} completed.")
+            print_success(f"Operation {operation_name} completed.")
             if 'error' in operation:
-                print(f"Operation failed with error: {operation['error']}")
+                print_error(f"Operation failed with error: {operation['error']}")
                 raise Exception(f"Operation {operation_name} failed.")
             return operation
         time.sleep(5) # Poll every 5 seconds
 
 def init_project_folders(parent_id, crm_v3, debug_mode=False):
     """Initializes and verifies the project folder structure."""
-    print(f"Initializing project folders under parent ID: {parent_id}...")
+    print_info(f"Initializing project folders under parent ID: {parent_id}...")
 
     full_parent_path = None
     # Try as an organization
@@ -91,13 +116,13 @@ def init_project_folders(parent_id, crm_v3, debug_mode=False):
         # Attempt to get the organization to verify it exists and we have access
         crm_v3.organizations().get(name=f"organizations/{parent_id}").execute()
         full_parent_path = f"organizations/{parent_id}"
-        print(f"Parent ID {parent_id} identified as an Organization.")
+        print_success(f"Parent ID {parent_id} identified as an Organization.")
     except Exception as e_org:
         # If not an organization, try as a folder
         try:
             crm_v3.folders().get(name=f"folders/{parent_id}").execute()
             full_parent_path = f"folders/{parent_id}"
-            print(f"Parent ID {parent_id} identified as a Folder.")
+            print_success(f"Parent ID {parent_id} identified as a Folder.")
         except Exception as e_folder:
             raise Exception(f"Parent ID {parent_id} is neither a valid Organization nor Folder ID. "
                             f"Organization check error: {e_org}. Folder check error: {e_folder}")
@@ -114,19 +139,19 @@ def init_project_folders(parent_id, crm_v3, debug_mode=False):
     for folder in folders:
         if folder.get('displayName') == main_folder_name:
             main_folder_id = folder.get('name').split('/')[1]
-            print(f"Found existing main folder: {main_folder_name} (ID: {main_folder_id})")
+            print_info(f"Found existing main folder: {main_folder_name} (ID: {main_folder_id})")
             break
 
     if not main_folder_id:
-        print(f"Creating main folder: {main_folder_name}...")
+        print_info(f"Creating main folder: {main_folder_name}...")
         body = {'displayName': main_folder_name, 'parent': full_parent_path}
         if debug_mode:
-            print(f"DEBUG: API Payload for creating main folder: {body}")
+            print_debug(f"DEBUG: API Payload for creating main folder: {body}")
         operation = crm_v3.folders().create(body=body).execute()
         operation_name = operation.get('name')
         wait_for_operation(crm_v3, operation_name)
         main_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
-        print(f"Created main folder: {main_folder_name} (ID: {main_folder_id})")
+        print_success(f"Created main folder: {main_folder_name} (ID: {main_folder_id})")
 
     # Sub-folder for General Attendees
     general_folder_name = config.GENERAL_FOLDER_NAME
@@ -135,19 +160,19 @@ def init_project_folders(parent_id, crm_v3, debug_mode=False):
     for folder in folders:
         if folder.get('displayName') == general_folder_name:
             general_folder_id = folder.get('name').split('/')[1]
-            print(f"Found existing general attendees folder: {general_folder_name} (ID: {general_folder_id})")
+            print_info(f"Found existing general attendees folder: {general_folder_name} (ID: {general_folder_id})")
             break
 
     if not general_folder_id:
-        print(f"Creating general attendees folder: {general_folder_name}...")
+        print_info(f"Creating general attendees folder: {general_folder_name}...")
         body = {'displayName': general_folder_name, 'parent': f"folders/{main_folder_id}"}
         if debug_mode:
-            print(f"DEBUG: API Payload for creating general attendees folder: {body}")
+            print_debug(f"DEBUG: API Payload for creating general attendees folder: {body}")
         operation = crm_v3.folders().create(body=body).execute()
         operation_name = operation.get('name')
         wait_for_operation(crm_v3, operation_name)
         general_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
-        print(f"Created general attendees folder: {general_folder_name} (ID: {general_folder_id})")
+        print_success(f"Created general attendees folder: {general_folder_name} (ID: {general_folder_id})")
 
     # Sub-folder for Hackathon Teams
     team_folder_name = config.TEAM_FOLDER_NAME
@@ -156,21 +181,21 @@ def init_project_folders(parent_id, crm_v3, debug_mode=False):
     for folder in folders:
         if folder.get('displayName') == team_folder_name:
             team_folder_id = folder.get('name').split('/')[1]
-            print(f"Found existing hackathon teams folder: {team_folder_name} (ID: {team_folder_id})")
+            print_info(f"Found existing hackathon teams folder: {team_folder_name} (ID: {team_folder_id})")
             break
 
     if not team_folder_id:
-        print(f"Creating hackathon teams folder: {team_folder_name}...")
+        print_info(f"Creating hackathon teams folder: {team_folder_name}...")
         body = {'displayName': team_folder_name, 'parent': f"folders/{main_folder_id}"}
         if debug_mode:
-            print(f"DEBUG: API Payload for creating hackathon teams folder: {body}")
+            print_debug(f"DEBUG: API Payload for creating hackathon teams folder: {body}")
         operation = crm_v3.folders().create(body=body).execute()
         operation_name = operation.get('name')
         wait_for_operation(crm_v3, operation_name)
         team_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
-        print(f"Created hackathon teams folder: {team_folder_name} (ID: {team_folder_id})")
+        print_success(f"Created hackathon teams folder: {team_folder_name} (ID: {team_folder_id})")
 
-    print("Folder initialization complete.")
+    print_success("Folder initialization complete.")
     return main_folder_id, general_folder_id, team_folder_id
 
 def main():
@@ -213,7 +238,7 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, cloud
             project_id_suffix = f"-{random_string}"
             project_id = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}{project_id_suffix}"
             project_name = f"playground project for {sanitized_email_prefix}"
-            print(f'Creating playground project for {email} with name {project_id}...')
+            print_info(f'Creating playground project for {email} with name {project_id}...')
             create_project(project_id, project_name, email, crm_v3, serviceusage_v1, cloudbilling_v1, general_folder_id)
 
 def create_project(project_id, project_name, user_email, crm_v3, serviceusage_v1, cloudbilling_v1, parent_folder_id, debug_mode=False):
@@ -224,9 +249,9 @@ def create_project(project_id, project_name, user_email, crm_v3, serviceusage_v1
         'parent': parent_folder
     }
     if debug_mode:
-        print(f"DEBUG: API Payload for creating project {project_id}: {body}")
+        print_debug(f"DEBUG: API Payload for creating project {project_id}: {body}")
     operation = crm_v3.projects().create(body=body).execute()
-    print(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
+    print_info(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
     wait_for_operation(crm_v3, operation['name'])
     link_billing_account(project_id, cloudbilling_v1, debug_mode)
     set_iam_policy(project_id, user_email, crm_v3, debug_mode)
@@ -251,9 +276,9 @@ def set_iam_policy(project_id, user_email, crm_v3, debug_mode=False):
     })
 
     if debug_mode:
-        print(f"DEBUG: API Payload for setting IAM policy for {project_id}: {{'policy': policy}}")
+        print_debug(f"DEBUG: API Payload for setting IAM policy for {project_id}: {{'policy': policy}}")
     crm_v3.projects().setIamPolicy(resource=resource_name, body={'policy': policy}).execute()
-    print(f'IAM policy updated for project {project_id}')
+    print_success(f'IAM policy updated for project {project_id}')
 
 def link_billing_account(project_id, cloudbilling_v1, debug_mode=False):
     billing_account = config.BILLING_ACCOUNT_ID
@@ -261,18 +286,18 @@ def link_billing_account(project_id, cloudbilling_v1, debug_mode=False):
     body = {'billingAccountName': billing_account}
     
     if debug_mode:
-        print(f"DEBUG: API Payload for linking billing account for {project_id}: {body}")
+        print_debug(f"DEBUG: API Payload for linking billing account for {project_id}: {body}")
     
     cloudbilling_v1.projects().updateBillingInfo(name=project_name, body=body).execute()
-    print(f'Billing account {billing_account} linked to project {project_id}')
+    print_success(f'Billing account {billing_account} linked to project {project_id}')
 
 
 def enable_apis(project_id, serviceusage_v1, debug_mode=False):
     apis_to_enable = config.APIS_TO_ENABLE
     for api in apis_to_enable:
-        print(f'Enabling {api} for project {project_id}...')
+        print_info(f'Enabling {api} for project {project_id}...')
         if debug_mode:
-            print(f"DEBUG: API Payload for enabling API {api} for project {project_id}: {{'name': f'projects/{project_id}/services/{api}'}}")
+            print_debug(f"DEBUG: API Payload for enabling API {api} for project {project_id}: {{'name': f'projects/{project_id}/services/{api}'}}")
         serviceusage_v1.services().enable(name=f'projects/{project_id}/services/{api}').execute()
 
 
@@ -287,7 +312,7 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, cloudbilling_v1
             sanitized_team_name = sanitize_project_id_part(team_name, 6)
             project_id = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}'
             project_name = f"team project for {team_name}"
-            print(f'Creating team project for {team_name} with name {project_id}...')
+            print_info(f'Creating team project for {team_name} with name {project_id}...')
             create_team_project(project_id, project_name, team_members, crm_v3, serviceusage_v1, cloudbilling_v1, team_folder_id)
 
 def create_team_project(project_id, project_name, team_members, crm_v3, serviceusage_v1, cloudbilling_v1, parent_folder_id, debug_mode=False):
@@ -298,9 +323,9 @@ def create_team_project(project_id, project_name, team_members, crm_v3, serviceu
         'parent': parent_folder
     }
     if debug_mode:
-        print(f"DEBUG: API Payload for creating team project {project_id}: {body}")
+        print_debug(f"DEBUG: API Payload for creating team project {project_id}: {body}")
     operation = crm_v3.projects().create(body=body).execute()
-    print(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
+    print_info(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
     wait_for_operation(crm_v3, operation['name'])
     link_billing_account(project_id, cloudbilling_v1, debug_mode)
     set_team_iam_policy(project_id, team_members, crm_v3, debug_mode)
@@ -325,9 +350,9 @@ def set_team_iam_policy(project_id, team_members, crm_v3, debug_mode=False):
     })
 
     if debug_mode:
-        print(f"DEBUG: API Payload for setting team IAM policy for {project_id}: {{'policy': policy}}")
+        print_debug(f"DEBUG: API Payload for setting team IAM policy for {project_id}: {{'policy': policy}}")
     crm_v3.projects().setIamPolicy(resource=resource_name, body={'policy': policy}).execute()
-    print(f'IAM policy updated for project {project_id}')
+    print_success(f'IAM policy updated for project {project_id}')
 
 
 
@@ -337,7 +362,7 @@ def check_folder(folder_id, crm_v3):
         crm_v3.folders().get(name=f"folders/{folder_id}").execute()
         return True
     except Exception as e:
-        print(f"Error accessing folder {folder_id}: {e}")
+        print_error(f"Error accessing folder {folder_id}: {e}")
         return False
 
 def list_folders(crm_v3):
@@ -348,7 +373,7 @@ def list_folders(crm_v3):
         folders = crm_v3.folders().list().execute().get('folders', [])
         return folders
     except Exception as e:
-        print(f"Error listing folders: {e}")
+        print_error(f"Error listing folders: {e}")
         return []
 
 def list_projects_in_folder(folder_id, crm_v3):
@@ -357,7 +382,7 @@ def list_projects_in_folder(folder_id, crm_v3):
         projects = crm_v3.projects().list(parent=f"folders/{folder_id}").execute().get('projects', [])
         return projects
     except Exception as e:
-        print(f"Error listing projects in folder {folder_id}: {e}")
+        print_error(f"Error listing projects in folder {folder_id}: {e}")
         return []
 
 if __name__ == '__main__':
