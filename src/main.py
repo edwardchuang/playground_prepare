@@ -72,6 +72,24 @@ def sanitize_project_id_part(part, max_len):
 
     return sanitized
 
+def sanitize_display_name(name):
+    """Sanitizes a string for use in a GCP project display name.
+    - Can contain letters, numbers, spaces, hyphens, apostrophes, and exclamation points.
+    - Must be between 4 and 30 characters.
+    """
+    # Replace disallowed characters with spaces
+    sanitized = re.sub(r'[^a-zA-Z0-9\s\-\'!]', ' ', name)
+    # Replace multiple spaces with a single space
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip()
+
+    # Truncate if too long, ensuring it's not too short after truncation
+    if len(sanitized) > 30:
+        sanitized = sanitized[:30].strip()
+    if len(sanitized) < 4:
+        sanitized = (sanitized + "_display_name_placeholder")[:4] # Ensure minimum length
+
+    return sanitized
+
 def get_credentials():
     """Gets user credentials from the environment and returns them."""
     credentials, project_id = google.auth.default(scopes=['https://www.googleapis.com/auth/userinfo.email', 'https://www.googleapis.com/auth/cloud-platform'])
@@ -237,7 +255,7 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, cloud
             random_string = os.urandom(3).hex() # Generates 6 random hex characters
             project_id_suffix = f"-{random_string}"
             project_id = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}{project_id_suffix}"
-            project_name = f"playground project for {sanitized_email_prefix}"
+            project_name = sanitize_display_name(f"playground project for {email_prefix}")
             print_info(f'Creating playground project for {email} with name {project_id}...')
             create_project(project_id, project_name, email, crm_v3, serviceusage_v1, cloudbilling_v1, general_folder_id)
 
@@ -308,10 +326,13 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, cloudbilling_v1
         next(reader)  # Skip header
         for row in reader:
             team_name, team_members_str = row
-            team_members = team_members_str.split(',')
+            team_members = team_members_str.split('|')
+            # a random string with 5 chars long
+            random_string = os.urandom(3).hex() # Generates 6 random hex characters
+            project_id_suffix = f"-{random_string}"
             sanitized_team_name = sanitize_project_id_part(team_name, 6)
-            project_id = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}'
-            project_name = f"team project for {team_name}"
+            project_id = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}{project_id_suffix}'
+            project_name = sanitize_display_name(f"team project for {team_name}")
             print_info(f'Creating team project for {team_name} with name {project_id}...')
             create_team_project(project_id, project_name, team_members, crm_v3, serviceusage_v1, cloudbilling_v1, team_folder_id)
 
@@ -346,7 +367,7 @@ def set_team_iam_policy(project_id, team_members, crm_v3, debug_mode=False):
     # Add team members as editors
     policy['bindings'].append({
         'role': 'roles/editor',
-        'members': [f'group:{member}' for member in team_members]
+        'members': [f'user:{member}' for member in team_members]
     })
 
     if debug_mode:
