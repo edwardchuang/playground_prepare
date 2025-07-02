@@ -74,8 +74,8 @@ def main_loop():
     try:
         credentials, display_name = get_credentials()
         crm_v3 = build('cloudresourcemanager', 'v3', credentials=credentials)
-        billing_v1 = build('billingbudgets', 'v1', credentials=credentials)
         serviceusage_v1 = build('serviceusage', 'v1', credentials=credentials)
+        cloudbilling_v1 = build('cloudbilling', 'v1', credentials=credentials)
         print(f"Successfully authenticated with Google Cloud as: {display_name}")
     except Exception as e:
         print(f"Failed to authenticate with Google Cloud: {e}")
@@ -137,14 +137,14 @@ def main_loop():
                         print("Error: General attendees folder not initialized. Please run 'init' first.")
                         continue
                     print(f"Starting provisioning for attendees from {file_path}...")
-                    provision_playground_projects(file_path, crm_v3, serviceusage_v1, billing_v1, general_attendees_folder_id, debug_mode)
+                    provision_playground_projects(file_path, crm_v3, serviceusage_v1, cloudbilling_v1, general_attendees_folder_id, debug_mode)
                     print("Finished provisioning for attendees.")
                 elif subcommand == "teams":
                     if not hackathon_teams_folder_id:
                         print("Error: Hackathon teams folder not initialized. Please run 'init' first.")
                         continue
                     print(f"Starting provisioning for teams from {file_path}...")
-                    provision_team_projects(file_path, crm_v3, serviceusage_v1, billing_v1, hackathon_teams_folder_id, debug_mode)
+                    provision_team_projects(file_path, crm_v3, serviceusage_v1, cloudbilling_v1, hackathon_teams_folder_id, debug_mode)
                     print("Finished provisioning for teams.")
                 else:
                     print(f"Error: Unknown subcommand '{subcommand}' for 'provision'.")
