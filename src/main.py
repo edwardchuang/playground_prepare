@@ -406,6 +406,59 @@ def list_projects_in_folder(folder_id, crm_v3):
         print_error(f"Error listing projects in folder {folder_id}: {e}")
         return []
 
+def apply_organization_policies(folder_id, crm_v3, debug_mode=False):
+    """Applies the organization policies defined in config.py to a specific folder."""
+    print_info(f"Applying organization policies to folder: {folder_id}...")
+    parent_folder = f"folders/{folder_id}"
+
+    for constraint, policy_config in config.ORGANIZATION_POLICY.items():
+        policy_name = f"{parent_folder}/policies/{constraint.replace('/', '%2F')}"
+        print_info(f"Applying policy for constraint: {policy_name}")
+
+        policy = {
+            'name': policy_name,
+            'spec': policy_config
+        }
+
+        if debug_mode:
+            print_debug(f"DEBUG: API Payload for setting org policy for {constraint}: {policy}")
+
+        try:
+            request = crm_v3.folders().orgPolicies().patch(name=policy_name, body=policy)
+            request.execute()
+            print_success(f"Successfully applied policy for constraint: {constraint}")
+        except Exception as e:
+            print_error(f"Error applying policy for constraint {constraint}: {e}")
+
+def revert_organization_policies(folder_id, crm_v3, debug_mode=False):
+    """Reverts the organization policies on a specific folder to their default state."""
+    print_info(f"Reverting organization policies on folder: {folder_id}...")
+    parent_folder = f"folders/{folder_id}"
+
+    for constraint in config.ORGANIZATION_POLICY.keys():
+        policy_name = f"{parent_folder}/policies/{constraint.replace('/', '%2F')}"
+        print_info(f"Reverting policy for constraint: {policy_name}")
+
+        # To revert, we set a policy that allows all and is not enforced.
+        policy = {
+            'name': policy_name,
+            'spec': {
+                'rules': [{'allowAll': True}],
+                'inheritFromParent': True, # Reset to inherit from parent
+            }
+        }
+
+        if debug_mode:
+            print_debug(f"DEBUG: API Payload for reverting org policy for {constraint}: {policy}")
+
+        try:
+            request = crm_v3.folders().orgPolicies().patch(name=policy_name, body=policy)
+            request.execute()
+            print_success(f"Successfully reverted policy for constraint: {constraint}")
+        except Exception as e:
+            print_error(f"Error reverting policy for constraint {constraint}: {e}")
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Provision Google Cloud projects for a hackathon.')
     parser.add_argument('--attendees', help='Path to the attendees CSV file.')

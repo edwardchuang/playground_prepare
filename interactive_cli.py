@@ -39,6 +39,8 @@ from main import (
     list_folders,
     list_projects_in_folder,
     init_project_folders,
+    apply_organization_policies,
+    revert_organization_policies,
 )
 from src import config
 
@@ -58,6 +60,8 @@ def print_help():
     print_info("  check folder <folder_id>           - Check if a folder is accessible.")
     print_info("  list folders                       - List all available folders.")
     print_info("  list projects <playground|team>    - List projects in the playground or team folder.")
+    print_info("  apply-policies <folder_id>         - Apply organization policies to a folder.")
+    print_info("  revert-policies <folder_id>        - Revert organization policies on a folder.")
     print_info("  debug on|off                       - Turn API payload debugging on or off.")
     print_info("  help                               - Show this help message.")
     print_info("  exit                               - Exit the application.\n")
@@ -223,6 +227,26 @@ def main_loop():
                         print_warning(f"No projects found in {folder_type} folder or an error occurred.")
                 else:
                     print_error(f"Error: Unknown subcommand '{subcommand}' for 'list'.")
+            elif command == "apply-policies":
+                if not args:
+                    print_error("Error: 'apply-policies' requires a folder ID.")
+                    continue
+                folder_id = args[0]
+                try:
+                    apply_organization_policies(folder_id, crm_v3, debug_mode)
+                    print_success(f"Successfully applied organization policies to folder {folder_id}.")
+                except Exception as e:
+                    print_error(f"Error applying organization policies: {e}")
+            elif command == "revert-policies":
+                if not args:
+                    print_error("Error: 'revert-policies' requires a folder ID.")
+                    continue
+                folder_id = args[0]
+                try:
+                    revert_organization_policies(folder_id, crm_v3, debug_mode)
+                    print_success(f"Successfully reverted organization policies on folder {folder_id}.")
+                except Exception as e:
+                    print_error(f"Error reverting organization policies: {e}")
             else:
                 print_error(f"Error: Unknown command '{command}'. Type 'help' for a list of commands.")
 
