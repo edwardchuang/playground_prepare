@@ -192,56 +192,54 @@ def init_project_folders(parent_id, crm_v3, debug_mode=False):
         general_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
         print_success(f"Created general attendees folder: {general_folder_name} (ID: {general_folder_id})")
 
-    # Sub-folder for Hackathon Teams
-    team_folder_name = config.TEAM_FOLDER_NAME
-    team_folder_id = None
+    # Sub-folder for Hackathon Teams-1
+    team1_folder_name = config.TEAM1_FOLDER_NAME
+    team1_folder_id = None
     folders = crm_v3.folders().list(parent=f"folders/{main_folder_id}").execute().get('folders', [])
     for folder in folders:
-        if folder.get('displayName') == team_folder_name:
-            team_folder_id = folder.get('name').split('/')[1]
-            print_info(f"Found existing hackathon teams folder: {team_folder_name} (ID: {team_folder_id})")
+        if folder.get('displayName') == team1_folder_name:
+            team1_folder_id = folder.get('name').split('/')[1]
+            print_info(f"Found existing hackathon teams-1 folder: {team1_folder_name} (ID: {team1_folder_id})")
             break
 
-    if not team_folder_id:
-        print_info(f"Creating hackathon teams folder: {team_folder_name}...")
-        body = {'displayName': team_folder_name, 'parent': f"folders/{main_folder_id}"}
+    if not team1_folder_id:
+        print_info(f"Creating hackathon teams-1 folder: {team1_folder_name}...")
+        body = {'displayName': team1_folder_name, 'parent': f"folders/{main_folder_id}"}
         if debug_mode:
-            print_debug(f"DEBUG: API Payload for creating hackathon teams folder: {body}")
+            print_debug(f"DEBUG: API Payload for creating hackathon teams-1 folder: {body}")
         operation = crm_v3.folders().create(body=body).execute()
         operation_name = operation.get('name')
         wait_for_operation(crm_v3, operation_name)
-        team_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
-        print_success(f"Created hackathon teams folder: {team_folder_name} (ID: {team_folder_id})")
+        team1_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
+        print_success(f"Created hackathon teams folder: {team1_folder_name} (ID: {team1_folder_id})")
 
+    # Sub-folder for Hackathon Teams-2
+    team2_folder_name = config.TEAM2_FOLDER_NAME
+    team2_folder_id = None
+    folders = crm_v3.folders().list(parent=f"folders/{main_folder_id}").execute().get('folders', [])
+    for folder in folders:
+        if folder.get('displayName') == team2_folder_name:
+            team2_folder_id = folder.get('name').split('/')[1]
+            print_info(f"Found existing hackathon teams-2 folder: {team2_folder_name} (ID: {team2_folder_id})")
+            break
+
+    if not team2_folder_id:
+        print_info(f"Creating hackathon teams-2 folder: {team2_folder_name}...")
+        body = {'displayName': team2_folder_name, 'parent': f"folders/{main_folder_id}"}
+        if debug_mode:
+            print_debug(f"DEBUG: API Payload for creating hackathon teams-2 folder: {body}")
+        operation = crm_v3.folders().create(body=body).execute()
+        operation_name = operation.get('name')
+        wait_for_operation(crm_v3, operation_name)
+        team2_folder_id = crm_v3.operations().get(name=operation_name).execute().get('response').get('name').split('/')[1]
+        print_success(f"Created hackathon teams folder: {team2_folder_name} (ID: {team2_folder_id})")
+
+    print(main_folder_id, general_folder_id, team1_folder_id, team2_folder_id)
     print_success("Folder initialization complete.")
-    return main_folder_id, general_folder_id, team_folder_id
+    return main_folder_id, general_folder_id, team1_folder_id, team2_folder_id
 
 def main():
-    parser = argparse.ArgumentParser(description='Provision Google Cloud projects for a hackathon.')
-    parser.add_argument('--attendees', help='Path to the attendees CSV file.')
-    parser.add_argument('--teams', help='Path to the teams CSV file.')
-    args = parser.parse_args()
-
-    credentials = get_credentials()
-    crm_v3 = build('cloudresourcemanager', 'v3', credentials=credentials)
-    serviceusage_v1 = build('serviceusage', 'v1', credentials=credentials)
-    cloudbilling_v1 = build('cloudbilling', 'v1', credentials=credentials)
-
-    if args.attendees or args.teams:
-        # For standalone execution, assume a default parent ID or make it configurable
-        # For now, we'll use a placeholder and assume the user will replace it.
-        # In a real scenario, this might come from an environment variable or a config file.
-        # For testing purposes, we'll use a dummy parent ID.
-        parent_id = "organizations/123456789012" # Replace with a valid organization or folder ID
-        
-        # Initialize folders to get the IDs
-        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3, debug_mode=False)
-
-        if args.attendees:
-            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, cloudbilling_v1, general_folder_id, debug_mode=False)
-
-        if args.teams:
-            provision_team_projects(args.teams, crm_v3, serviceusage_v1, cloudbilling_v1, team_folder_id, debug_mode=False)
+    pass
 
 def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, cloudbilling_v1, general_folder_id, debug_mode=False):
     with open(attendees_file, 'r') as f:
@@ -386,12 +384,12 @@ def check_folder(folder_id, crm_v3):
         print_error(f"Error accessing folder {folder_id}: {e}")
         return False
 
-def list_folders(crm_v3):
-    """Lists all available folders."""
+def list_folders(folder_id, crm_v3):
+    """Lists all available folders under MAIN_HACKATHON_FOLDER_ID."""
     try:
         # This is a simplified list command. In a real-world scenario with many folders,
         # you would need to handle pagination.
-        folders = crm_v3.folders().list().execute().get('folders', [])
+        folders = crm_v3.folders().list(parent=f"folders/{folder_id}").execute().get('folders', [])
         return folders
     except Exception as e:
         print_error(f"Error listing folders: {e}")
@@ -460,28 +458,4 @@ def revert_organization_policies(folder_id, crm_v3, debug_mode=False):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Provision Google Cloud projects for a hackathon.')
-    parser.add_argument('--attendees', help='Path to the attendees CSV file.')
-    parser.add_argument('--teams', help='Path to the teams CSV file.')
-    args = parser.parse_args()
-
-    credentials = get_credentials()
-    crm_v3 = build('cloudresourcemanager', 'v3', credentials=credentials)
-    serviceusage_v1 = build('serviceusage', 'v1', credentials=credentials)
-    cloudbilling_v1 = build('cloudbilling', 'v1', credentials=credentials)
-
-    if args.attendees or args.teams:
-        # For standalone execution, assume a default parent ID or make it configurable
-        # For now, we'll use a placeholder and assume the user will replace it.
-        # In a real scenario, this might come from an environment variable or a config file.
-        # For testing purposes, we'll use a dummy parent ID.
-        parent_id = "organizations/123456789012" # Replace with a valid organization or folder ID
-        
-        # Initialize folders to get the IDs
-        _, general_folder_id, team_folder_id = init_project_folders(parent_id, crm_v3, debug_mode=False)
-
-        if args.attendees:
-            provision_playground_projects(args.attendees, crm_v3, serviceusage_v1, cloudbilling_v1, general_folder_id, debug_mode=False)
-
-        if args.teams:
-            provision_team_projects(args.teams, crm_v3, serviceusage_v1, cloudbilling_v1, team_folder_id, debug_mode=False)
+    pass

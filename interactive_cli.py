@@ -47,7 +47,8 @@ from src import config
 # Global variables to store folder IDs
 main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
 general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
-hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
+hackathon_teams1_folder_id = config.HACKATHON_TEAMS1_FOLDER_ID
+hackathon_teams2_folder_id = config.HACKATHON_TEAMS2_FOLDER_ID
 
 debug_mode = False
 
@@ -68,7 +69,7 @@ def print_help():
 
 def save_folder_ids_to_config():
     """Saves the current folder IDs to src/config.py for persistence."""
-    global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id
+    global main_hackathon_folder_id, general_attendees_folder_id,  hackathon_teams1_folder_id, hackathon_teams2_folder_id
     
     config_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'src', 'config.py'))
     
@@ -81,20 +82,24 @@ def save_folder_ids_to_config():
                 f.write(f"MAIN_HACKATHON_FOLDER_ID = '{main_hackathon_folder_id}'\n")
             elif line.startswith('GENERAL_ATTENDEES_FOLDER_ID ='):
                 f.write(f"GENERAL_ATTENDEES_FOLDER_ID = '{general_attendees_folder_id}'\n")
-            elif line.startswith('HACKATHON_TEAMS_FOLDER_ID ='):
-                f.write(f"HACKATHON_TEAMS_FOLDER_ID = '{hackathon_teams_folder_id}'\n")
+            elif line.startswith('HACKATHON_TEAMS1_FOLDER_ID ='):
+                f.write(f"HACKATHON_TEAMS1_FOLDER_ID = '{hackathon_teams1_folder_id}'\n")
+            elif line.startswith('HACKATHON_TEAMS2_FOLDER_ID ='):
+                f.write(f"HACKATHON_TEAMS2_FOLDER_ID = '{hackathon_teams2_folder_id}'\n")
             else:
                 f.write(line)
     print_success("Folder IDs saved to src/config.py.")
 
 def main_loop():
     """The main interactive loop for the CLI."""
-    global main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id, debug_mode
+    global main_hackathon_folder_id, general_attendees_folder_id,  hackathon_teams1_folder_id, hackathon_teams2_folder_id
+    global debug_mode
 
     # Load folder IDs from config at startup
     main_hackathon_folder_id = config.MAIN_HACKATHON_FOLDER_ID
     general_attendees_folder_id = config.GENERAL_ATTENDEES_FOLDER_ID
-    hackathon_teams_folder_id = config.HACKATHON_TEAMS_FOLDER_ID
+    hackathon_teams1_folder_id = config.HACKATHON_TEAMS1_FOLDER_ID
+    hackathon_teams2_folder_id = config.HACKATHON_TEAMS2_FOLDER_ID
 
     print_info("Welcome to the Hackathon Project Provisioning CLI.")
     print_info("Type 'help' for a list of commands.")
@@ -144,8 +149,8 @@ def main_loop():
                     continue
                 parent_id = args[0]
                 try:
-                    main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams_folder_id = init_project_folders(parent_id, crm_v3, debug_mode)
-                    print_success(f"Initialized folders: Main: {main_hackathon_folder_id}, General: {general_attendees_folder_id}, Teams: {hackathon_teams_folder_id}")
+                    main_hackathon_folder_id, general_attendees_folder_id, hackathon_teams1_folder_id, hackathon_teams2_folder_id = init_project_folders(parent_id, crm_v3, debug_mode)
+                    print_success(f"Initialized folders: Main: {main_hackathon_folder_id}, General: {general_attendees_folder_id}, Team1: {hackathon_teams1_folder_id}, Team2: {hackathon_teams2_folder_id}")
                     save_folder_ids_to_config()
                 except Exception as e:
                     print_error(f"Error during initialization: {e}")
@@ -169,8 +174,17 @@ def main_loop():
                     provision_playground_projects(file_path, crm_v3, serviceusage_v1, cloudbilling_v1, general_attendees_folder_id, debug_mode)
                     print_success("Finished provisioning for attendees.")
                 elif subcommand == "teams":
-                    if not hackathon_teams_folder_id:
+                    if not hackathon_teams1_folder_id or not hackathon_teams2_folder_id :
                         print_error("Error: Hackathon teams folder not initialized. Please run 'init' first.")
+                        continue
+                    # ask which teams folder to be created, team 1 or team 2?
+                    which_team_folder = input("Provision for Team 1 or Team 2? (1/2): ")
+                    if which_team_folder == '1':
+                        hackathon_teams_folder_id = hackathon_teams1_folder_id
+                    elif which_team_folder == '2':
+                        hackathon_teams_folder_id = hackathon_teams2_folder_id
+                    else:
+                        print_error("Invalid choice. Please enter '1' or '2'.")
                         continue
                     print_info(f"Starting provisioning for teams from {file_path}...")
                     provision_team_projects(file_path, crm_v3, serviceusage_v1, cloudbilling_v1, hackathon_teams_folder_id, debug_mode)
@@ -193,7 +207,10 @@ def main_loop():
                     continue
                 subcommand = args[0].lower()
                 if subcommand == "folders":
-                    folders = list_folders(crm_v3)
+                    if not main_hackathon_folder_id:
+                        print_error("Error: Main hackathon folder not initialized. Please run 'init' first.")
+                        continue
+                    folders = list_folders(main_hackathon_folder_id, crm_v3)
                     if folders:
                         print_info("Available Folders:")
                         for folder in folders:
@@ -202,16 +219,18 @@ def main_loop():
                         print_warning("No folders found or an error occurred.")
                 elif subcommand == "projects":
                     if len(args) < 2:
-                        print_error("Error: Usage: list projects <playground|team>")
+                        print_error("Error: Usage: list projects <playground|team1|team2>")
                         continue
                     folder_type = args[1].lower()
                     target_folder_id = None
                     if folder_type == "playground":
                         target_folder_id = general_attendees_folder_id
-                    elif folder_type == "team":
-                        target_folder_id = hackathon_teams_folder_id
+                    elif folder_type == "team1":
+                        target_folder_id = hackathon_teams1_folder_id
+                    elif folder_type == "team2":
+                        target_folder_id = hackathon_teams2_folder_id
                     else:
-                        print_error("Error: Invalid project type. Use 'playground' or 'team'.")
+                        print_error("Error: Invalid project type. Use 'playground' or 'team1/team2'.")
                         continue
 
                     if not target_folder_id:

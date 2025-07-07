@@ -31,9 +31,10 @@ APIS_TO_ENABLE = [
 ]
 
 # Folder names
-MAIN_FOLDER_NAME = "Hackathon Playground Users"
+MAIN_FOLDER_NAME = "Hackathon Playground"
 GENERAL_FOLDER_NAME = "General Attendees"
-TEAM_FOLDER_NAME = "Hackathon Teams"
+TEAM1_FOLDER_NAME = "Hackathon Teams1"
+TEAM2_FOLDER_NAME = "Hackathon Teams2"
 
 # Project Naming Conventions
 PLAYGROUND_PROJECT_SUFFIX = "-sbox-gcp-25q3"
@@ -42,8 +43,8 @@ TEAM_PROJECT_SUFFIX = "-team-gcp-25q3"
 # Initialized Folder IDs (will be updated after init command)
 MAIN_HACKATHON_FOLDER_ID = None
 GENERAL_ATTENDEES_FOLDER_ID = None
-HACKATHON_TEAMS_FOLDER_ID = None
-
+HACKATHON_TEAMS1_FOLDER_ID = None
+HACKATHON_TEAMS2_FOLDER_ID = None
 
 # 組織政策，用於限制服務和虛擬機器執行個體
 ORGANIZATION_POLICY = {
