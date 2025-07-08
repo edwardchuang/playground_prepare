@@ -37,7 +37,7 @@ The `teams.csv` file should have two columns: `team_name` for the name of the ha
 Example `teams.csv`:
 ```csv
 team_name,team_members
-team_alpha,member1@example.com,member2@example.com
+team_alpha,member1@example.com|member2@example.com
 team_beta,member3@example.com
 ```
 
