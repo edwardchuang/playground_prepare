@@ -251,7 +251,7 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, cloud
             sanitized_email_prefix = sanitize_project_id_part(email_prefix, 10)
             # a random string with 5 chars long
             random_string = os.urandom(3).hex() # Generates 6 random hex characters
-            project_id_suffix = f"-{random_string}"
+            project_id_suffix = "" # f"-{random_string}"
             project_id = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}{project_id_suffix}"
             project_name = sanitize_display_name(f"playground project for {email_prefix}")
             print_info(f'Creating playground project for {email} with name {project_id}...')
@@ -327,7 +327,7 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, cloudbilling_v1
             team_members = team_members_str.split('|')
             # a random string with 5 chars long
             random_string = os.urandom(3).hex() # Generates 6 random hex characters
-            project_id_suffix = f"-{random_string}"
+            project_id_suffix = "" # f"-{random_string}"
             sanitized_team_name = sanitize_project_id_part(team_name, 6)
             project_id = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}{project_id_suffix}'
             project_name = sanitize_display_name(f"team project for {team_name}")
