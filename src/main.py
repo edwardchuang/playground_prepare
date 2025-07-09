@@ -8,6 +8,7 @@ import google.oauth2.id_token
 import google.auth.transport.requests
 import re
 import os
+from googleapiclient.errors import HttpError
 
 # ANSI escape codes for colors
 class Colors:
@@ -256,6 +257,9 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, cloud
             print_info(f'Creating playground project for {email} with id {project_id} name {project_name}...')
             create_project(project_id, project_name, email, crm_v3, serviceusage_v1, cloudbilling_v1, general_folder_id)
 
+def generate_random_suffix():
+    return os.urandom(3).hex() # Generates 6 random hex characters
+
 def create_project(project_id, project_name, user_email, crm_v3, serviceusage_v1, cloudbilling_v1, parent_folder_id, debug_mode=False):
     parent_folder = f"folders/{parent_folder_id}"
     body = {
@@ -265,12 +269,32 @@ def create_project(project_id, project_name, user_email, crm_v3, serviceusage_v1
     }
     if debug_mode:
         print_debug(f"DEBUG: API Payload for creating project {project_id}: {body}")
-    operation = crm_v3.projects().create(body=body).execute()
-    print_info(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
-    wait_for_operation(crm_v3, operation['name'])
-    link_billing_account(project_id, cloudbilling_v1, debug_mode)
-    set_iam_policy(project_id, user_email, crm_v3, debug_mode)
-    enable_apis(project_id, serviceusage_v1, debug_mode)
+
+    try:
+        operation = crm_v3.projects().create(body=body).execute()
+        print_info(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
+        wait_for_operation(crm_v3, operation['name'])
+        link_billing_account(project_id, cloudbilling_v1, debug_mode)
+        set_iam_policy(project_id, user_email, crm_v3, debug_mode)
+        enable_apis(project_id, serviceusage_v1, debug_mode)
+    except HttpError as e:
+        if e.resp.status == 409: # Conflict - usually means project ID already exists
+            print_warning(f"Project ID '{project_id}' already exists.")
+            while True:
+                choice = input("Do you want to (s)kip this project or (r)etry with a random suffix? (s/r): ").lower()
+                if choice == 's':
+                    print_info(f"Skipping project creation for '{project_id}'.")
+                    return
+                elif choice == 'r':
+                    new_project_id = f"{project_id}-{generate_random_suffix()}"
+                    print_info(f"Retrying project creation with new ID: '{new_project_id}'")
+                    create_project(new_project_id, project_name, user_email, crm_v3, serviceusage_v1, cloudbilling_v1, parent_folder_id, debug_mode)
+                    return
+                else:
+                    print_error("Invalid choice. Please enter 's' or 'r'.")
+        else:
+            print_error(f"An unexpected error occurred during project creation for {project_id}: {e}")
+            raise # Re-raise other HttpErrors
 
 def set_iam_policy(project_id, user_email, crm_v3, debug_mode=False):
     admins = config.ADMIN_EMAILS
@@ -341,12 +365,31 @@ def create_team_project(project_id, project_name, team_members, crm_v3, serviceu
     }
     if debug_mode:
         print_debug(f"DEBUG: API Payload for creating team project {project_id}: {body}")
-    operation = crm_v3.projects().create(body=body).execute()
-    print_info(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
-    wait_for_operation(crm_v3, operation['name'])
-    link_billing_account(project_id, cloudbilling_v1, debug_mode)
-    set_team_iam_policy(project_id, team_members, crm_v3, debug_mode)
-    enable_apis(project_id, serviceusage_v1, debug_mode)
+    try:
+        operation = crm_v3.projects().create(body=body).execute()
+        print_info(f"Project creation initiated for {project_id}. Operation: {operation['name']}")
+        wait_for_operation(crm_v3, operation['name'])
+        link_billing_account(project_id, cloudbilling_v1, debug_mode)
+        set_team_iam_policy(project_id, team_members, crm_v3, debug_mode)
+        enable_apis(project_id, serviceusage_v1, debug_mode)
+    except HttpError as e:
+        if e.resp.status == 409: # Conflict - usually means project ID already exists
+            print_warning(f"Project ID '{project_id}' already exists.")
+            while True:
+                choice = input("Do you want to (s)kip this project or (r)etry with a random suffix? (s/r): ").lower()
+                if choice == 's':
+                    print_info(f"Skipping project creation for '{project_id}'.")
+                    return
+                elif choice == 'r':
+                    new_project_id = f"{project_id}-{generate_random_suffix()}"
+                    print_info(f"Retrying project creation with new ID: '{new_project_id}'")
+                    create_team_project(new_project_id, project_name, team_members, crm_v3, serviceusage_v1, cloudbilling_v1, parent_folder_id, debug_mode)
+                    return
+                else:
+                    print_error("Invalid choice. Please enter 's' or 'r'.")
+        else:
+            print_error(f"An unexpected error occurred during project creation for {project_id}: {e}")
+            raise # Re-raise other HttpErrors
 
 def set_team_iam_policy(project_id, team_members, crm_v3, debug_mode=False):
     admins = config.ADMIN_EMAILS
