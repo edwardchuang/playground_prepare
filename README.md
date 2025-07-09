@@ -72,3 +72,47 @@ The CLI supports the following commands:
 *   `list projects <playground|team>`: List projects in the playground or team folder.
 *   `help`: Show the help message.
 *   `exit`: Exit the application.
+
+## Usage Procedures
+
+* Use Cloud Shell
+* Clone the source code from git (skip if you're done before)
+```bash
+git clone https://github.com/edwardchuang/playground_prepare.git
+```
+* (If cloned before) Update the repo
+```bash
+cd playground_prepare ; git pull -v
+```
+
+* Prepare virtual env for python
+```bash 
+virtualenv venv
+source venv/bin/activate
+```
+
+* Install the requirements.txt 
+```bash
+pip install -r requirements.txt
+```
+
+* Execute the main loop
+```bash
+python interactive_cli.py
+```
+
+* initializate the folder
+```
+interactive> init <org_id>
+```
+
+* provision individual projects
+```
+interactive> provision attendees <indivitual_attendees.csv>
+```
+
+* provision batch projects
+```
+interactive> provision teams <indivitual_attendees.csv>
+```
+(when prompt, input 1 or 2 for batch)
