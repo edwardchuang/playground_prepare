@@ -71,9 +71,11 @@ fi
 echo "Starting deletion process..."
 while IFS= read -r line; do
   # Each line is "folders/ID  DisplayName"
-  FOLDER_NAME=$(echo "$line" | awk '{print $1}') # e.g., folders/12345
+  # Each line is "folders/ID  DisplayName"
+  # Use read to separate the first field (FOLDER_NAME) from the rest (DISPLAY_NAME_WITH_SPACES)
+  read -r FOLDER_NAME REST_OF_LINE <<< "$line"
   FOLDER_ID=$(basename "$FOLDER_NAME")
-  DISPLAY_NAME=$(echo "$line" | awk '{$1=""; print $0}' | xargs) # The rest of the line
+  DISPLAY_NAME="${REST_OF_LINE}" # DISPLAY_NAME now correctly holds the rest of the line, including spaces
 
   echo -n "Deleting folder '$DISPLAY_NAME' (ID: $FOLDER_ID)... "
   
