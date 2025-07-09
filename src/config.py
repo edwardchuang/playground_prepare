@@ -32,13 +32,20 @@ APIS_TO_ENABLE = [
 
 # Folder names
 MAIN_FOLDER_NAME = "Hackathon Playground"
-GENERAL_FOLDER_NAME = "General Attendees"
-TEAM1_FOLDER_NAME = "Hackathon Teams1"
-TEAM2_FOLDER_NAME = "Hackathon Teams2"
+GENERAL_FOLDER_NAME = "Individual Attendees"
+TEAM1_FOLDER_NAME = "Hackathon Batch1"
+TEAM2_FOLDER_NAME = "Hackathon Batch2"
 
-# Project Naming Conventions
-PLAYGROUND_PROJECT_SUFFIX = "-sbox-gcp-25q3"
-TEAM_PROJECT_SUFFIX = "-team-gcp-25q3"
+# Project Id/Naming Conventions
+PLAYGROUND_PROJECT_ID_PREFIX = "idv-"
+PLAYGROUND_PROJECT_ID_SUFFIX = ""
+PLAYGROUND_PROJECT_NAME_PREFIX = "idv attendee "
+PLAYGROUND_PROJECT_NAME_SUFFIX = ""
+
+TEAM_PROJECT_ID_PREFIX = "team-"
+TEAM_PROJECT_ID_SUFFIX = ""
+TEAM_PROJECT_NAME_PREFIX = "team project for "
+TEAM_PROJECT_NAME_SUFFIX = ""
 
 # Initialized Folder IDs (will be updated after init command)
 MAIN_HACKATHON_FOLDER_ID = None

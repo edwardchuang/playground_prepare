@@ -34,7 +34,7 @@ def print_info(message):
 def print_debug(message):
     print(f"{Colors.MAGENTA}{message}{Colors.RESET}")
 
-def sanitize_project_id_part(part, max_len):
+def sanitize_project_id_part(part, max_len = 30):
     """Sanitizes a string part for use in a GCP project ID.
     Converts to lowercase, replaces non-alphanumeric (except hyphen) with hyphen,
     removes leading/trailing hyphens, ensures it starts with a letter, and truncates to max_len.
@@ -72,7 +72,7 @@ def sanitize_project_id_part(part, max_len):
 
     return sanitized
 
-def sanitize_display_name(name):
+def sanitize_display_name(name, max_len = 30):
     """Sanitizes a string for use in a GCP project display name.
     - Can contain letters, numbers, spaces, hyphens, apostrophes, and exclamation points.
     - Must be between 4 and 30 characters.
@@ -83,10 +83,10 @@ def sanitize_display_name(name):
     sanitized = re.sub(r'\s+', ' ', sanitized).strip()
 
     # Truncate if too long, ensuring it's not too short after truncation
-    if len(sanitized) > 30:
-        sanitized = sanitized[:30].strip()
+    if len(sanitized) > max_len:
+        sanitized = sanitized[:max_len].strip()
     if len(sanitized) < 4:
-        sanitized = (sanitized + "_display_name_placeholder")[:4] # Ensure minimum length
+        sanitized = (sanitized + "00000")[:4] # Ensure minimum length
 
     return sanitized
 
@@ -248,13 +248,12 @@ def provision_playground_projects(attendees_file, crm_v3, serviceusage_v1, cloud
         for row in reader:
             email = row[0]
             email_prefix = email.split('@')[0]
-            sanitized_email_prefix = sanitize_project_id_part(email_prefix, 10)
             # a random string with 5 chars long
             random_string = os.urandom(3).hex() # Generates 6 random hex characters
             project_id_suffix = "" # f"-{random_string}"
-            project_id = f"{sanitized_email_prefix}{config.PLAYGROUND_PROJECT_SUFFIX}{project_id_suffix}"
-            project_name = sanitize_display_name(f"playground project for {email_prefix}")
-            print_info(f'Creating playground project for {email} with name {project_id}...')
+            project_id = sanitize_project_id_part(f"{config.PLAYGROUND_PROJECT_ID_PREFIX}{email_prefix}{config.PLAYGROUND_PROJECT_ID_SUFFIX}{project_id_suffix}")
+            project_name = sanitize_display_name(f"{config.PLAYGROUND_PROJECT_NAME_PREFIX}{email_prefix}{config.PLAYGROUND_PROJECT_NAME_SUFFIX}")
+            print_info(f'Creating playground project for {email} with id {project_id} name {project_name}...')
             create_project(project_id, project_name, email, crm_v3, serviceusage_v1, cloudbilling_v1, general_folder_id)
 
 def create_project(project_id, project_name, user_email, crm_v3, serviceusage_v1, cloudbilling_v1, parent_folder_id, debug_mode=False):
@@ -328,10 +327,9 @@ def provision_team_projects(teams_file, crm_v3, serviceusage_v1, cloudbilling_v1
             # a random string with 5 chars long
             random_string = os.urandom(3).hex() # Generates 6 random hex characters
             project_id_suffix = "" # f"-{random_string}"
-            sanitized_team_name = sanitize_project_id_part(team_name, 6)
-            project_id = f'{sanitized_team_name}{config.TEAM_PROJECT_SUFFIX}{project_id_suffix}'
-            project_name = sanitize_display_name(f"team project for {team_name}")
-            print_info(f'Creating team project for {team_name} with name {project_id}...')
+            project_id = sanitize_project_id_part(f"{config.TEAM_PROJECT_ID_PREFIX}{team_name}{config.TEAM_PROJECT_ID_SUFFIX}{project_id_suffix}")
+            project_name = sanitize_display_name(f"{config.TEAM_PROJECT_NAME_PREFIX}{team_name}{config.TEAM_PROJECT_NAME_SUFFIX}")
+            print_info(f'Creating team project for {team_name} with id {project_id} name {project_name} ...')
             create_team_project(project_id, project_name, team_members, crm_v3, serviceusage_v1, cloudbilling_v1, team_folder_id)
 
 def create_team_project(project_id, project_name, team_members, crm_v3, serviceusage_v1, cloudbilling_v1, parent_folder_id, debug_mode=False):
